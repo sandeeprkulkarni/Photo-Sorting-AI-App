@@ -1,10 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# Node
 node_modules/
 dist/
+dist-electron/
+.DS_Store
+
+# AI Models (too large for git)
+models/
+*.pt
+*.onnx
+*.pth
+
+# User Data
+storage/
+database/*.db
+database/*.db-journal
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Environment
 .env
 .env.local
-*.log
-.DS_Store
-__pycache__/
-*.pyc
-.venv/
-venv/
+
+# Build artifacts
+build/
+*.egg
