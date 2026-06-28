@@ -15,16 +15,16 @@ celery==5.4.0
 redis==5.2.0
 
 # AI/ML - Core
-torch==2.5.1
-torchvision==0.20.1
+#torch==2.5.1
+#torchvision==0.20.1
 
 # AI/ML - Computer Vision
 opencv-python==4.10.0.84
 pillow==11.1.0
-scikit-image==0.24.0
+scikit-image>=0.25.2
 
 # AI/ML - CLIP
-git+https://github.com/openai/CLIP.git
+#git+https://github.com/openai/CLIP.git
 open_clip_torch==2.29.0
 
 # AI/ML - Face Recognition
@@ -32,8 +32,8 @@ insightface==0.7.3
 onnxruntime-gpu==1.20.1  # Use onnxruntime if no GPU
 
 # AI/ML - OCR
-paddleocr==2.9.1
-paddlepaddle-gpu==3.0.0b1  # Use paddlepaddle if no GPU
+#paddleocr==2.9.1
+#paddlepaddle-gpu==3.0.0b1  # Use paddlepaddle if no GPU
 
 # AI/ML - Quality Assessment
 imutils==0.5.4
@@ -78,4 +78,4 @@ loguru==0.7.3
 qdrant-client==1.12.1
 
 # NSFW Detection
-tensorflow==2.18.0  # For NSFW model
+tensorflow>=2.20.0  # For NSFW model
