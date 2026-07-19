@@ -4,5 +4,12 @@
     "build": "vite build",
     "electron:compile": "tsc --project frontend/electron/tsconfig.json",
     "electron:dev": "npm run electron:compile && electron frontend/electron/main.js"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^9.2.0",
+    "axios": "^1.18.1",
+    "react-router-dom": "^7.18.1"
   }
 }
