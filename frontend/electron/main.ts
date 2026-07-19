@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { spawn, ChildProcess } from 'child_process';
 import { fileURLToPath } from 'url';
 
@@ -13,9 +14,14 @@ let backendProcess: ChildProcess | null = null;
 function startBackend() {
   console.log('Starting backend server...');
   
-  const pythonPath = process.env.PYTHON_PATH || 'python';
   const backendPath = path.join(__dirname, '../../backend');
   
+  // Auto-detect Windows venv python first, otherwise fallback to global python
+  const winVenvPython = path.join(backendPath, 'venv/Scripts/python.exe');
+  const pythonPath = process.env.PYTHON_PATH || (fs.existsSync(winVenvPython) ? winVenvPython : 'python');
+  
+  console.log(`Using Python executable: ${pythonPath}`);
+
   backendProcess = spawn(
     pythonPath,
     ['-m', 'uvicorn', 'app.main:app', '--port', '8000'],
@@ -45,12 +51,11 @@ function createWindow() {
     },
   });
 
-  // Use app.isPackaged instead of process.env.NODE_ENV
+  // Use app.isPackaged for reliable development detection
   if (!app.isPackaged) {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {
-    // Also fixing the path to point to the root dist folder just in case!
     mainWindow.loadFile(path.join(__dirname, '../../dist/index.html'));
   }
 

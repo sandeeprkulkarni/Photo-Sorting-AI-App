@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "electron:compile": "tsc --project frontend/electron/tsconfig.json",
+    "electron:dev": "npm run electron:compile && electron frontend/electron/main.js"
+  }
+}
