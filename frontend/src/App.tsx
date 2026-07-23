@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { Box, Drawer, List, ListItem, ListItemIcon, ListItemText, AppBar, Toolbar, Typography } from '@mui/material';
+import { Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, AppBar, Toolbar, Typography } from '@mui/material';
 import { Home, Upload, Eye, Users, MapPin, Calendar, Settings } from 'lucide-react';
 
 import Dashboard from './pages/Dashboard';
@@ -56,9 +56,11 @@ function App() {
             <Box sx={{ overflow: 'auto' }}>
               <List>
                 {menuItems.map((item) => (
-                  <ListItem button key={item.text} component={Link} to={item.path}>
-                    <ListItemIcon>{item.icon}</ListItemIcon>
-                    <ListItemText primary={item.text} />
+                  <ListItem key={item.text} disablePadding>
+                    <ListItemButton component={Link} to={item.path}>
+                      <ListItemIcon>{item.icon}</ListItemIcon>
+                      <ListItemText primary={item.text} />
+                    </ListItemButton>
                   </ListItem>
                 ))}
               </List>
