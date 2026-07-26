@@ -7,18 +7,12 @@ from pydantic_settings import BaseSettings
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def get_default_db_url() -> str:
-    """Dynamically determine the database folder path inside the backend directory."""
-    # Traverse upwards until we find the 'backend' root directory
-    target_dir = CURRENT_DIR
-    while os.path.basename(target_dir) != "backend" and target_dir != os.path.dirname(target_dir):
-        target_dir = os.path.dirname(target_dir)
-        
-    # If we couldn't find a folder named 'backend', fall back to the project root
-    if os.path.basename(target_dir) != "backend":
-        target_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-    db_dir = os.path.join(target_dir, "database")
-    # Automatically ensure the 'database' folder folder physically exists on your computer
+    """Dynamically determine the database folder path at the project root."""
+    # __file__ is backend/app/config.py
+    # Step up 3 levels: config.py -> app -> backend -> Project Root
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    
+    db_dir = os.path.join(project_root, "database")
     os.makedirs(db_dir, exist_ok=True)
     
     return f"sqlite:///{os.path.join(db_dir, 'photos.db')}"
