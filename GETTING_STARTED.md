@@ -353,7 +353,7 @@ Copy the photos router from `IMPLEMENTATION_PLAN.md` Phase 1.4 into `backend/app
 
 ```bash
 cd backend
-source venv/bin/activate
+venv\Scripts\activate
 
 # Start FastAPI server
 uvicorn app.main:app --reload --port 8000
