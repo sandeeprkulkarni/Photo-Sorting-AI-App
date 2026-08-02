@@ -2,8 +2,10 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, AppBar, Toolbar, Typography } from '@mui/material';
-import { Home, Upload, Eye, Users, MapPin, Calendar, Settings } from 'lucide-react';
+import { Home, Upload, Eye, Users, MapPin, Calendar, Settings, Copy } from 'lucide-react';
 
+// Make sure this path matches where your Duplicates page is saved!
+import Duplicates from './pages/Duplicates';
 import Dashboard from './pages/Dashboard';
 import Import from './pages/Import';
 import Review from './pages/Review';
@@ -26,6 +28,7 @@ const menuItems = [
   { text: 'Dashboard', icon: <Home />, path: '/' },
   { text: 'Import', icon: <Upload />, path: '/import' },
   { text: 'Review', icon: <Eye />, path: '/review' },
+  { text: 'Duplicates', icon: <Copy />, path: '/duplicates' },
   { text: 'People', icon: <Users />, path: '/people' },
   { text: 'Locations', icon: <MapPin />, path: '/locations' },
   { text: 'Occasions', icon: <Calendar />, path: '/occasions' },
@@ -73,6 +76,7 @@ function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/import" element={<Import />} />
               <Route path="/review" element={<Review />} />
+              <Route path="/duplicates" element={<Duplicates />} />
               <Route path="/people" element={<People />} />
               <Route path="/locations" element={<Locations />} />
               <Route path="/occasions" element={<Occasions />} />

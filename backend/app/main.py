@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import photos
+from app.api.routes import photos, duplicates
 #, people, locations, occasions
 #from app.core.database import Base, engine
 from app.database.session import engine
@@ -24,6 +24,7 @@ app.add_middleware(
 )
 
 app.include_router(photos.router, prefix="/api/photos", tags=["photos"])
+app.include_router(duplicates.router, prefix="/api/duplicates", tags=["duplicates"])
 #app.include_router(people.router, prefix="/api/people", tags=["people"])
 #app.include_router(locations.router, prefix="/api/locations", tags=["locations"])
 #app.include_router(occasions.router, prefix="/api/occasions", tags=["occasions"])
