@@ -6,8 +6,6 @@ from ai.faces.recognizer import FaceRecognizer
 from ai.faces.detector import FaceDetector
 from pydantic import BaseModel
 from typing import List
-import shutil
-import os
 
 router = APIRouter()
 
@@ -80,30 +78,18 @@ async def get_person_photos(
 
 @router.post("/detect-and-recognize")
 async def detect_and_recognize_all(db: Session = Depends(get_db)):
-    """
-    Detect faces in all photos and recognize them.
-    This is a background task in production.
-    """
+    """Detect faces in all photos and recognize them."""
     detector = FaceDetector()
     recognizer = FaceRecognizer(db)
     
-    # Get all photos without face detection
-    photos = db.query(Photo).filter(
-        Photo.status == "processed"
-    ).all()
-    
+    photos = db.query(Photo).filter(Photo.status == "processed").all()
     detected_count = 0
     recognized_count = 0
     
     for photo in photos:
-        # Detect faces
         faces = detector.detect_faces(photo.file_path)
-        
         for face_data in faces:
-            # Recognize face
             recognition = recognizer.recognize_face(face_data["embedding"])
-            
-            # Create face record
             face = Face(
                 photo_id=photo.id,
                 person_id=recognition["person_id"] if recognition else None,
@@ -116,13 +102,11 @@ async def detect_and_recognize_all(db: Session = Depends(get_db)):
                 quality_score=face_data["quality"]
             )
             db.add(face)
-            
             detected_count += 1
             if recognition:
                 recognized_count += 1
     
     db.commit()
-    
     return {
         "detected_faces": detected_count,
         "recognized_faces": recognized_count

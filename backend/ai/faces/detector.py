@@ -2,13 +2,14 @@ from insightface.app import FaceAnalysis
 import numpy as np
 from typing import List, Dict
 from PIL import Image
+import cv2
 
 class FaceDetector:
     def __init__(self):
         # Initialize InsightFace model
         self.app = FaceAnalysis(
             name='buffalo_l',
-            providers=['CUDAExecutionProvider', 'CPUExecutionProvider']
+            providers=['CPUExecutionProvider']
         )
         self.app.prepare(ctx_id=0, det_size=(640, 640))
     

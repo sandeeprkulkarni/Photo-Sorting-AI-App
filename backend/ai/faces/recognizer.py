@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-from typing import Optional, List
+from typing import Optional, List, Dict
 from sqlalchemy.orm import Session
 from app.database.models import Person, Face
 
