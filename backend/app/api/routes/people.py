@@ -21,7 +21,14 @@ async def create_person(
     request: CreatePersonRequest,
     db: Session = Depends(get_db)
 ):
-    """Create a new person profile."""
+    """Create a new person profile (or return existing if already created)."""
+    
+    # 1. Check if the person already exists in the database
+    existing_person = db.query(Person).filter(Person.name == request.name).first()
+    if existing_person:
+        return {"person_id": existing_person.id, "name": existing_person.name}
+        
+    # 2. If they don't exist, create them
     person = Person(name=request.name)
     db.add(person)
     db.commit()

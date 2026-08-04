@@ -57,14 +57,14 @@ export default function People() {
 
       <Grid container spacing={4}>
         {/* Left Column: Face Trainer Component */}
-        <Grid item xs={12} md={5}>
+        <Grid size={{ xs: 12, md: 5 }}>
           <Card className="shadow-sm border">
             <FaceTrainer />
           </Card>
         </Grid>
 
         {/* Right Column: List of Trained People */}
-        <Grid item xs={12} md={7}>
+        <Grid size={{ xs: 12, md: 7 }}>
           <h2 className="text-2xl font-bold mb-4">Recognized People</h2>
           {people.length === 0 ? (
             <div className="p-8 text-center bg-gray-50 rounded-lg border">
@@ -73,7 +73,7 @@ export default function People() {
           ) : (
             <Grid container spacing={2}>
               {people.map((person) => (
-                <Grid item xs={12} sm={6} key={person.id}>
+                <Grid size={{ xs: 12, sm: 6 }} key={person.id}>
                   <Card className="border shadow-sm">
                     <CardContent>
                       <Typography variant="h6" className="font-bold">

@@ -179,7 +179,7 @@ export default function Duplicates() {
                         <CardMedia
                           component="img"
                           alt="Duplicate candidate"
-                          image={`http://localhost:8000/api/photos/${photo.id}/image`}
+                          image={`http://localhost:8080/api/photos/${photo.id}/image`}
                           style={{ height: 220, objectFit: 'cover' }}
                         />
                         <div className="p-3">
