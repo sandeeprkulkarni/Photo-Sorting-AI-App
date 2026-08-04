@@ -20,7 +20,7 @@ def get_default_db_url() -> str:
 class Settings(BaseSettings):
     # API
     API_HOST: str = "127.0.0.1"
-    API_PORT: int = 8000
+    API_PORT: int = 8080
     
     # Database (Uses default_factory to build the absolute path dynamically)
     DATABASE_URL: str = Field(default_factory=get_default_db_url)

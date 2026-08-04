@@ -24,7 +24,7 @@ function startBackend() {
 
   backendProcess = spawn(
     pythonPath,
-    ['-m', 'uvicorn', 'app.main:app', '--port', '8000'],
+    ['-m', 'uvicorn', 'app.main:app', '--port', '8080'],
     {
       cwd: backendPath,
       env: { ...process.env }
@@ -48,6 +48,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
+      webSecurity: false,
     },
   });
 
@@ -65,7 +66,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  startBackend();
+  //startBackend();
   
   // Wait for backend to start
   setTimeout(() => {
