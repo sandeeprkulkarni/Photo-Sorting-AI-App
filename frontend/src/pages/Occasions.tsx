@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Card, CardContent, Typography, Grid, CircularProgress } from '@mui/material';
-import { PartyPopper } from 'lucide-react';
+import { PartyPopper, BrainCircuit, ImageIcon, Sparkles, Database } from 'lucide-react';
 import { api } from '../services/api';
+import PhasePulseScanner from '../components/PhasePulseScanner';
 
 export default function Occasions() {
   const [occasions, setOccasions] = useState<any[]>([]);
@@ -50,9 +51,22 @@ export default function Occasions() {
         </Button>
       </div>
 
+      <PhasePulseScanner 
+        isScanning={processing} 
+        title="CLIP Semantic Classifier"
+        subtitle="Evaluating photo context via zero-shot neural processing"
+        mainIcon={PartyPopper}
+        phases={[
+          { id: 1, title: 'Phase 1: Model Initialization', description: 'Loading CLIP ViT-B/32 neural network into system memory...', icon: BrainCircuit },
+          { id: 2, title: 'Phase 2: Semantic Extraction', description: 'Evaluating photo pixels and generating high-dimensional embeddings...', icon: ImageIcon },
+          { id: 3, title: 'Phase 3: Pattern Classification', description: 'Calculating cosine similarity against occasion text prompts...', icon: Sparkles },
+          { id: 4, title: 'Phase 4: Database Indexing', description: 'Applying optimal category labels and updating database records...', icon: Database }
+        ]}
+      />
+
       <Grid container spacing={3}>
         {occasions.map((occ, index) => (
-          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
+          <Grid item xs={12} sm={6} md={4} key={index}>
             <Card className="shadow-sm border">
               <CardContent>
                 <Typography variant="h6" className="font-bold capitalize">{occ.name.replace('_', ' ')}</Typography>

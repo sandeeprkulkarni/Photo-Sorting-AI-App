@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Card, CardContent, Typography, Grid, CircularProgress } from '@mui/material';
-import { MapPin } from 'lucide-react';
+import { MapPin, Globe, Satellite, Map as MapIcon, Database } from 'lucide-react';
 import { api } from '../services/api';
+import PhasePulseScanner from '../components/PhasePulseScanner';
 
 export default function Locations() {
   const [locations, setLocations] = useState<any[]>([]);
@@ -50,9 +51,22 @@ export default function Locations() {
         </Button>
       </div>
 
+      <PhasePulseScanner 
+        isScanning={processing} 
+        title="Geospatial Processing Engine"
+        subtitle="Reverse geocoding EXIF metadata via Nominatim API"
+        mainIcon={MapPin}
+        phases={[
+          { id: 1, title: 'Phase 1: Metadata Extraction', description: 'Extracting GPS latitude and longitude from photo EXIF data...', icon: Satellite },
+          { id: 2, title: 'Phase 2: API Connection', description: 'Establishing secure connection to global geocoding API...', icon: Globe },
+          { id: 3, title: 'Phase 3: Reverse Geocoding', description: 'Translating raw coordinates into human-readable city and country names...', icon: MapIcon },
+          { id: 4, title: 'Phase 4: Database Indexing', description: 'Grouping photos by region and saving metadata to local database...', icon: Database }
+        ]}
+      />
+
       <Grid container spacing={3}>
         {locations.map((loc, index) => (
-          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
+          <Grid item xs={12} sm={6} md={4} key={index}>
             <Card className="shadow-sm border">
               <CardContent>
                 <Typography variant="h6" className="font-bold">{loc.name}</Typography>

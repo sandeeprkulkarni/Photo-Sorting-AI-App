@@ -89,7 +89,8 @@ async def detect_and_recognize_all(db: Session = Depends(get_db)):
     detector = FaceDetector()
     recognizer = FaceRecognizer(db)
     
-    photos = db.query(Photo).filter(Photo.status == "processed").all()
+    #photos = db.query(Photo).filter(Photo.status == "processed").all()
+    photos = db.query(Photo).filter(Photo.status.in_(["pending", "classified", "processed"])).all()
     detected_count = 0
     recognized_count = 0
     

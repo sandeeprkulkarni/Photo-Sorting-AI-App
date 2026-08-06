@@ -2,6 +2,7 @@ import torch
 import clip
 from PIL import Image
 from typing import Dict
+import numpy as np
 
 class OccasionClassifier:
     def __init__(self):

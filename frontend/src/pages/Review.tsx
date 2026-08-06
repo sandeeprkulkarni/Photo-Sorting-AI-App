@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Chip, Grid, Card, CardMedia } from '@mui/material';
 import { Check, X } from 'lucide-react';
-import { api } from '../services/api';
+import { api, API_BASE_URL} from '../services/api';
 
 interface ClassifiedPhoto {
   id: number;
@@ -57,7 +57,7 @@ export default function Review() {
         <Card>
           <CardMedia
             component="img"
-            image={`http://localhost:8000/api/photos/${currentPhoto.id}/image`}
+            image={`${API_BASE_URL}/photos/${currentPhoto.id}/image`}
             alt="Photo"
             style={{ maxHeight: 600, objectFit: 'contain' }}
           />
