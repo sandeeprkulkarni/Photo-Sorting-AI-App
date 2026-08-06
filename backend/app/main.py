@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import photos, duplicates, people, locations, occasions
+from app.api.routes import photos, duplicates, people, locations, occasions, feedback
 #from app.core.database import Base, engine
 from app.database.session import engine
 from app.database.models import Base
@@ -27,6 +27,7 @@ app.include_router(duplicates.router, prefix="/api/duplicates", tags=["duplicate
 app.include_router(people.router, prefix="/api/people", tags=["people"])
 app.include_router(locations.router, prefix="/api/locations", tags=["locations"])
 app.include_router(occasions.router, prefix="/api/occasions", tags=["occasions"])
+app.include_router(feedback.router, prefix="/api/feedback", tags=["feedback"])
 
 
 @app.get("/health")

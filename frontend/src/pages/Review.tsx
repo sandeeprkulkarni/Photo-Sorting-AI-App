@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Chip, Grid, Card, CardMedia } from '@mui/material';
+import { Button, Chip, Card, CardMedia } from '@mui/material';
 import { Check, X } from 'lucide-react';
-import { api, API_BASE_URL} from '../services/api';
+import { api, API_BASE_URL } from '../services/api';
 
 interface ClassifiedPhoto {
   id: number;
   file_path: string;
-  whatsapp_category: string;
-  quality_score: number;
+  category: string;
+  confidence: number;
 }
 
 export default function Review() {
@@ -19,32 +19,48 @@ export default function Review() {
   }, []);
 
   const loadClassifiedPhotos = async () => {
-    const response = await api.get('/photos?status=classified');
-    setPhotos(response.data.photos);
+    try {
+      const response = await api.get('/photos?status=classified');
+      setPhotos(response.data.photos);
+    } catch (error) {
+      console.error("Failed to fetch classified photos", error);
+    }
+  };
+
+  // Phase 6: Centralized Feedback Handler
+  const handleRecategorize = async (newCategory: string) => {
+    const photo = photos[currentIndex];
+    try {
+      await api.post('/feedback/', {
+        photo_id: photo.id,
+        correction_type: 'category',
+        original_value: photo.category || 'unknown',
+        corrected_value: newCategory
+      });
+      setCurrentIndex(currentIndex + 1);
+    } catch (error) {
+      console.error("Failed to submit feedback", error);
+      alert("Error submitting feedback. Check console.");
+    }
   };
 
   const handleKeep = async () => {
+    // Confirm the AI's original choice is correct
     const photo = photos[currentIndex];
-    await api.post(`/photos/${photo.id}/keep`);
-    setCurrentIndex(currentIndex + 1);
+    await handleRecategorize(photo.category || 'useful');
   };
 
   const handleReject = async () => {
-    const photo = photos[currentIndex];
-    await api.post(`/photos/${photo.id}/reject`);
-    setCurrentIndex(currentIndex + 1);
+    // Mark for manual review if rejected without a specific category
+    await handleRecategorize('rejected_needs_review');
   };
 
-  const handleRecategorize = async (newCategory: string) => {
-    const photo = photos[currentIndex];
-    await api.post(`/photos/${photo.id}/recategorize`, {
-      category: newCategory
-    });
-    setCurrentIndex(currentIndex + 1);
-  };
+  if (currentIndex >= photos.length && photos.length > 0) {
+    return <div className="p-8 text-xl font-semibold">All photos reviewed!</div>;
+  }
 
-  if (currentIndex >= photos.length) {
-    return <div className="p-8">All photos reviewed!</div>;
+  if (photos.length === 0) {
+    return <div className="p-8 text-xl text-gray-500">No photos pending review.</div>;
   }
 
   const currentPhoto = photos[currentIndex];
@@ -60,21 +76,25 @@ export default function Review() {
             image={`${API_BASE_URL}/photos/${currentPhoto.id}/image`}
             alt="Photo"
             style={{ maxHeight: 600, objectFit: 'contain' }}
+            onError={(e) => {
+              // Fallback to local file path if the API endpoint fails
+              (e.target as HTMLImageElement).src = `file://${currentPhoto.file_path}`;
+            }}
           />
         </Card>
 
         <div className="mt-4 flex items-center justify-between">
           <div>
             <Chip 
-              label={currentPhoto.whatsapp_category || 'Uncategorized'} 
+              label={currentPhoto.category || 'unclassified'} 
               color={
-                currentPhoto.whatsapp_category === 'useful' ? 'success' :
-                currentPhoto.whatsapp_category === 'spam' ? 'error' :
+                currentPhoto.category === 'useful' ? 'success' :
+                currentPhoto.category === 'spam' ? 'error' :
                 'warning'
               }
             />
-            <span className="ml-2">
-              Confidence: {currentPhoto.quality_score ? `${(currentPhoto.quality_score * 100).toFixed(1)}%` : 'N/A'}
+            <span className="ml-2 font-medium">
+              Confidence: {((currentPhoto.confidence || 0) * 100).toFixed(1)}%
             </span>
           </div>
 
@@ -98,8 +118,8 @@ export default function Review() {
           </div>
         </div>
 
-        <div className="mt-4">
-          <p className="mb-2">Recategorize as:</p>
+        <div className="mt-6 border-t pt-4">
+          <p className="mb-3 font-semibold text-gray-700">Recategorize as:</p>
           <div className="space-x-2">
             {['spam', 'greetings', 'sensitive', 'useful'].map(cat => (
               <Button
@@ -113,7 +133,7 @@ export default function Review() {
           </div>
         </div>
 
-        <p className="mt-4 text-gray-600">
+        <p className="mt-6 text-center font-mono text-gray-500">
           Photo {currentIndex + 1} of {photos.length}
         </p>
       </div>
