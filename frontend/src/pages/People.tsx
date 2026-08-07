@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Grid, Card, CardContent, Typography, Chip } from '@mui/material';
+import { Button, Grid, Card, CardContent, Typography, Chip, CircularProgress } from '@mui/material';
 import { ScanFace, Cpu, Dna, Database } from 'lucide-react';
 import { api } from '../services/api';
 import FaceTrainer from '../components/FaceTrainer';
@@ -8,6 +8,7 @@ import PhasePulseScanner from '../components/PhasePulseScanner';
 export default function People() {
   const [people, setPeople] = useState<any[]>([]);
   const [scanning, setScanning] = useState(false);
+  const [taskId, setTaskId] = useState<string | null>(null);
 
   const fetchPeople = async () => {
     try {
@@ -22,18 +23,40 @@ export default function People() {
     fetchPeople();
   }, []);
 
+  // Poll for background task progress
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (taskId) {
+      interval = setInterval(async () => {
+        try {
+          const response = await api.get(`/progress/task/${taskId}`);
+          if (response.data.state === 'SUCCESS') {
+            clearInterval(interval);
+            setScanning(false);
+            setTaskId(null);
+            fetchPeople(); // Refresh data when done
+          } else if (response.data.state === 'FAILURE') {
+            clearInterval(interval);
+            setScanning(false);
+            setTaskId(null);
+            alert('Face scanning failed.');
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [taskId]);
+
   const handleScanAllPhotos = async () => {
     setScanning(true);
     try {
+      // Dispatch to Celery and get task_id
       const response = await api.post('/people/detect-and-recognize');
-      alert(
-        `Scan complete!\nDetected Faces: ${response.data.detected_faces}\nRecognized Matches: ${response.data.recognized_faces}`
-      );
-      fetchPeople();
+      setTaskId(response.data.task_id);
     } catch (error) {
-      console.error('Scanning error:', error);
-      alert('Scanning failed. Check console for details.');
-    } finally {
+      alert("Error starting face scan. Check console.");
       setScanning(false);
     }
   };
@@ -49,18 +72,18 @@ export default function People() {
         <Button
           variant="contained"
           color="primary"
-          startIcon={<ScanFace />}
+          startIcon={scanning ? <CircularProgress size={20} color="inherit" /> : <ScanFace />}
           onClick={handleScanAllPhotos}
           disabled={scanning}
         >
-          {scanning ? 'Scanning Library...' : 'Scan All Photos for Faces'}
+          {scanning ? 'Scanning in Background...' : 'Scan All Photos for Faces'}
         </Button>
       </div>
 
       <PhasePulseScanner 
         isScanning={scanning} 
         title="Neural Face Recognition Engine"
-        subtitle="Batch processing library photos locally on CPU"
+        subtitle={taskId ? "Processing in background via Celery..." : "Batch processing library photos locally on CPU"}
         mainIcon={ScanFace}
         phases={[
           { id: 1, title: 'Phase 1: Engine Initialization', description: 'Waking up InsightFace neural networks & loading ONNX models...', icon: Cpu },

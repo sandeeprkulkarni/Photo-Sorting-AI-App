@@ -7,6 +7,7 @@ import PhasePulseScanner from '../components/PhasePulseScanner';
 export default function Locations() {
   const [locations, setLocations] = useState<any[]>([]);
   const [processing, setProcessing] = useState(false);
+  const [taskId, setTaskId] = useState<string | null>(null);
 
   const fetchLocations = async () => {
     try {
@@ -21,15 +22,40 @@ export default function Locations() {
     fetchLocations();
   }, []);
 
+  // Poll for background task progress
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (taskId) {
+      interval = setInterval(async () => {
+        try {
+          const response = await api.get(`/progress/task/${taskId}`);
+          if (response.data.state === 'SUCCESS') {
+            clearInterval(interval);
+            setProcessing(false);
+            setTaskId(null);
+            fetchLocations(); // Refresh data when done
+          } else if (response.data.state === 'FAILURE') {
+            clearInterval(interval);
+            setProcessing(false);
+            setTaskId(null);
+            alert('Location processing failed.');
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [taskId]);
+
   const handleProcessLocations = async () => {
     setProcessing(true);
     try {
+      // Dispatch to Celery and get task_id
       const response = await api.post('/locations/process');
-      alert(`Successfully processed ${response.data.processed} photos!`);
-      fetchLocations();
+      setTaskId(response.data.task_id);
     } catch (error) {
-      alert("Error processing locations. Check console.");
-    } finally {
+      alert("Error starting location processing. Check console.");
       setProcessing(false);
     }
   };
@@ -47,14 +73,14 @@ export default function Locations() {
           onClick={handleProcessLocations}
           disabled={processing}
         >
-          {processing ? 'Geocoding...' : 'Process Missing Locations'}
+          {processing ? 'Geocoding in Background...' : 'Process Missing Locations'}
         </Button>
       </div>
 
       <PhasePulseScanner 
         isScanning={processing} 
         title="Geospatial Processing Engine"
-        subtitle="Reverse geocoding EXIF metadata via Nominatim API"
+        subtitle={taskId ? "Processing in background via Celery..." : "Reverse geocoding EXIF metadata via Nominatim API"}
         mainIcon={MapPin}
         phases={[
           { id: 1, title: 'Phase 1: Metadata Extraction', description: 'Extracting GPS latitude and longitude from photo EXIF data...', icon: Satellite },
