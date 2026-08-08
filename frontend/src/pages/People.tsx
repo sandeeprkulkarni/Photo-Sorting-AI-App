@@ -6,9 +6,11 @@ import FaceTrainer from '../components/FaceTrainer';
 import PhasePulseScanner from '../components/PhasePulseScanner';
 
 export default function People() {
+  const savedTaskId = localStorage.getItem('peopleTaskId');
+
   const [people, setPeople] = useState<any[]>([]);
-  const [scanning, setScanning] = useState(false);
-  const [taskId, setTaskId] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(!!savedTaskId);
+  const [taskId, setTaskId] = useState<string | null>(savedTaskId);
 
   const fetchPeople = async () => {
     try {
@@ -23,7 +25,6 @@ export default function People() {
     fetchPeople();
   }, []);
 
-  // Poll for background task progress
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (taskId) {
@@ -34,15 +35,22 @@ export default function People() {
             clearInterval(interval);
             setScanning(false);
             setTaskId(null);
-            fetchPeople(); // Refresh data when done
+            localStorage.removeItem('peopleTaskId');
+            fetchPeople(); 
           } else if (response.data.state === 'FAILURE') {
             clearInterval(interval);
             setScanning(false);
             setTaskId(null);
+            localStorage.removeItem('peopleTaskId');
             alert('Face scanning failed.');
           }
-        } catch (error) {
-          console.error(error);
+        } catch (error: any) {
+          if (error.response?.status === 404 || error.response?.status === 500) {
+            clearInterval(interval);
+            setScanning(false);
+            setTaskId(null);
+            localStorage.removeItem('peopleTaskId');
+          }
         }
       }, 1000);
     }
@@ -52,9 +60,9 @@ export default function People() {
   const handleScanAllPhotos = async () => {
     setScanning(true);
     try {
-      // Dispatch to Celery and get task_id
       const response = await api.post('/people/detect-and-recognize');
       setTaskId(response.data.task_id);
+      localStorage.setItem('peopleTaskId', response.data.task_id);
     } catch (error) {
       alert("Error starting face scan. Check console.");
       setScanning(false);

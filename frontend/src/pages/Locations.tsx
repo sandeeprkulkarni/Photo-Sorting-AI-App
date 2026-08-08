@@ -5,9 +5,11 @@ import { api } from '../services/api';
 import PhasePulseScanner from '../components/PhasePulseScanner';
 
 export default function Locations() {
+  const savedTaskId = localStorage.getItem('locationsTaskId');
+
   const [locations, setLocations] = useState<any[]>([]);
-  const [processing, setProcessing] = useState(false);
-  const [taskId, setTaskId] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(!!savedTaskId);
+  const [taskId, setTaskId] = useState<string | null>(savedTaskId);
 
   const fetchLocations = async () => {
     try {
@@ -22,7 +24,6 @@ export default function Locations() {
     fetchLocations();
   }, []);
 
-  // Poll for background task progress
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (taskId) {
@@ -33,15 +34,22 @@ export default function Locations() {
             clearInterval(interval);
             setProcessing(false);
             setTaskId(null);
-            fetchLocations(); // Refresh data when done
+            localStorage.removeItem('locationsTaskId');
+            fetchLocations();
           } else if (response.data.state === 'FAILURE') {
             clearInterval(interval);
             setProcessing(false);
             setTaskId(null);
+            localStorage.removeItem('locationsTaskId');
             alert('Location processing failed.');
           }
-        } catch (error) {
-          console.error(error);
+        } catch (error: any) {
+          if (error.response?.status === 404 || error.response?.status === 500) {
+            clearInterval(interval);
+            setProcessing(false);
+            setTaskId(null);
+            localStorage.removeItem('locationsTaskId');
+          }
         }
       }, 1000);
     }
@@ -51,9 +59,9 @@ export default function Locations() {
   const handleProcessLocations = async () => {
     setProcessing(true);
     try {
-      // Dispatch to Celery and get task_id
       const response = await api.post('/locations/process');
       setTaskId(response.data.task_id);
+      localStorage.setItem('locationsTaskId', response.data.task_id);
     } catch (error) {
       alert("Error starting location processing. Check console.");
       setProcessing(false);

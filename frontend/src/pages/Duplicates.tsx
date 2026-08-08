@@ -5,11 +5,13 @@ import { api } from '../services/api';
 import PhasePulseScanner from '../components/PhasePulseScanner';
 
 export default function Duplicates() {
-  const [processing, setProcessing] = useState(false);
-  const [taskId, setTaskId] = useState<string | null>(null);
+  const savedTaskId = localStorage.getItem('duplicatesTaskId');
+  
+  const [processing, setProcessing] = useState(!!savedTaskId);
+  const [taskId, setTaskId] = useState<string | null>(savedTaskId);
   const [statusText, setStatusText] = useState('');
 
-  // Polling Effect: This runs every second while we have a valid taskId
+  // Polling Effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
@@ -21,23 +23,29 @@ export default function Duplicates() {
           
           setStatusText(`Status: ${state} | ${status || 'Processing...'}`);
 
-          // If the task succeeds or fails, stop polling and reset the UI
           if (state === 'SUCCESS') {
             clearInterval(interval);
             setProcessing(false);
             setTaskId(null);
+            localStorage.removeItem('duplicatesTaskId');
             alert('Duplicate detection complete!');
-            // Here you would normally call a function to refresh your UI with the results
           } else if (state === 'FAILURE') {
             clearInterval(interval);
             setProcessing(false);
             setTaskId(null);
+            localStorage.removeItem('duplicatesTaskId');
             alert('Background task failed. Check backend logs.');
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error("Error polling task status:", error);
+          if (error.response?.status === 404 || error.response?.status === 500) {
+            clearInterval(interval);
+            setProcessing(false);
+            setTaskId(null);
+            localStorage.removeItem('duplicatesTaskId');
+          }
         }
-      }, 1000); // Poll every 1 second
+      }, 1000);
     }
 
     return () => {
@@ -49,11 +57,9 @@ export default function Duplicates() {
     setProcessing(true);
     setStatusText('Dispatching task to background workers...');
     try {
-      // 1. Tell the backend to start the task
       const response = await api.post('/duplicates/detect');
-      
-      // 2. Save the task_id to trigger the polling useEffect above
       setTaskId(response.data.task_id);
+      localStorage.setItem('duplicatesTaskId', response.data.task_id);
     } catch (error) {
       console.error("Failed to start detection", error);
       alert("Error triggering duplicate detection.");
@@ -79,7 +85,6 @@ export default function Duplicates() {
         </Button>
       </div>
 
-      {/* The UI visualizer for the background task */}
       <PhasePulseScanner 
         isScanning={processing} 
         title="Deep Duplicate Analysis"

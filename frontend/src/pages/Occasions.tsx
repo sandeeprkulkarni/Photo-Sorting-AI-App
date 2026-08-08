@@ -5,9 +5,11 @@ import { api } from '../services/api';
 import PhasePulseScanner from '../components/PhasePulseScanner';
 
 export default function Occasions() {
+  const savedTaskId = localStorage.getItem('occasionsTaskId');
+
   const [occasions, setOccasions] = useState<any[]>([]);
-  const [processing, setProcessing] = useState(false);
-  const [taskId, setTaskId] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(!!savedTaskId);
+  const [taskId, setTaskId] = useState<string | null>(savedTaskId);
 
   const fetchOccasions = async () => {
     try {
@@ -22,7 +24,6 @@ export default function Occasions() {
     fetchOccasions();
   }, []);
 
-  // Poll for background task progress
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (taskId) {
@@ -33,15 +34,22 @@ export default function Occasions() {
             clearInterval(interval);
             setProcessing(false);
             setTaskId(null);
-            fetchOccasions(); // Refresh data when done
+            localStorage.removeItem('occasionsTaskId');
+            fetchOccasions();
           } else if (response.data.state === 'FAILURE') {
             clearInterval(interval);
             setProcessing(false);
             setTaskId(null);
+            localStorage.removeItem('occasionsTaskId');
             alert('Occasion classification failed.');
           }
-        } catch (error) {
-          console.error(error);
+        } catch (error: any) {
+          if (error.response?.status === 404 || error.response?.status === 500) {
+            clearInterval(interval);
+            setProcessing(false);
+            setTaskId(null);
+            localStorage.removeItem('occasionsTaskId');
+          }
         }
       }, 1000);
     }
@@ -51,9 +59,9 @@ export default function Occasions() {
   const handleProcessOccasions = async () => {
     setProcessing(true);
     try {
-      // Dispatch to Celery and get task_id
       const response = await api.post('/occasions/classify');
       setTaskId(response.data.task_id);
+      localStorage.setItem('occasionsTaskId', response.data.task_id);
     } catch (error) {
       alert("Error starting occasion classification. Check console.");
       setProcessing(false);
