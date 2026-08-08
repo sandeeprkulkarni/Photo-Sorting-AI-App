@@ -11,55 +11,60 @@ class ImportService:
     def __init__(self, db: Session):
         self.db = db
         
-    async def import_photos(self, source_path: str) -> dict:
-        """
-        Import photos from a directory.
-        Returns: {imported: int, skipped: int, errors: list}
-        """
+    async def import_photos(self, source_path: str, include_subfolders: bool = True, skip_duplicates: bool = True, extract_gps: bool = True) -> dict:
         results = {"imported": 0, "skipped": 0, "errors": []}
         
-        # Supported image extensions
-        extensions = {'.jpg', '.jpeg', '.png', '.heic', '.webp'}
+        # We added the RAW formats here to match your design!
+        extensions = {'.jpg', '.jpeg', '.png', '.heic', '.webp', '.raw', '.cr2', '.nef'}
         
-        # Walk through directory
-        for root, dirs, files in os.walk(source_path):
-            for filename in files:
-                file_path = os.path.join(root, filename)
-                ext = Path(filename).suffix.lower()
+        # Determine how to read the directory based on user choice
+        if include_subfolders:
+            # os.walk automatically goes into every subfolder
+            file_paths = [os.path.join(root, f) for root, _, files in os.walk(source_path) for f in files]
+        else:
+            # os.listdir only looks at the exact folder selected
+            try:
+                file_paths = [os.path.join(source_path, f) for f in os.listdir(source_path) if os.path.isfile(os.path.join(source_path, f))]
+            except Exception as e:
+                results["errors"].append({"file": source_path, "error": str(e)})
+                return results
+
+        for file_path in file_paths:
+            filename = os.path.basename(file_path)
+            ext = Path(filename).suffix.lower()
+            
+            # This is where it ignores videos and documents automatically!
+            if ext not in extensions:
+                continue
+            
+            try:
+                file_hash = self._calculate_hash(file_path)
                 
-                if ext not in extensions:
-                    continue
-                
-                try:
-                    # Check if already imported
-                    file_hash = self._calculate_hash(file_path)
-                    existing = self.db.query(Photo).filter(
-                        Photo.file_hash == file_hash
-                    ).first()
-                    
+                # Check user preference for skipping duplicates
+                if skip_duplicates:
+                    existing = self.db.query(Photo).filter(Photo.file_hash == file_hash).first()
                     if existing:
                         results["skipped"] += 1
                         continue
-                    
-                    # Extract metadata
-                    metadata = self._extract_metadata(file_path)
-                    
-                    # Create photo record
-                    photo = Photo(
-                        file_path=file_path,
-                        original_filename=filename,
-                        file_hash=file_hash,
-                        **metadata
-                    )
-                    
-                    self.db.add(photo)
-                    results["imported"] += 1
-                    
-                except Exception as e:
-                    results["errors"].append({
-                        "file": filename,
-                        "error": str(e)
-                    })
+                
+                # Pass user preference for GPS extraction
+                metadata = self._extract_metadata(file_path, extract_gps)
+                
+                photo = Photo(
+                    file_path=file_path,
+                    original_filename=filename,
+                    file_hash=file_hash,
+                    **metadata
+                )
+                
+                self.db.add(photo)
+                results["imported"] += 1
+                
+            except Exception as e:
+                results["errors"].append({
+                    "file": filename,
+                    "error": str(e)
+                })
         
         self.db.commit()
         return results
@@ -72,47 +77,42 @@ class ImportService:
                 hash_md5.update(chunk)
         return hash_md5.hexdigest()
     
-    def _extract_metadata(self, file_path: str) -> dict:
+    def _extract_metadata(self, file_path: str, extract_gps: bool) -> dict:
         """Extract EXIF and basic metadata."""
         metadata = {}
         
         try:
-            # Get file stats
             stat = os.stat(file_path)
             metadata["file_size"] = stat.st_size
             
-            # Open image
             img = Image.open(file_path)
             metadata["width"] = img.width
             metadata["height"] = img.height
             
-            # Extract EXIF
             if hasattr(img, '_getexif') and img._getexif():
                 exif_dict = piexif.load(img.info.get('exif', b''))
                 
-                # Camera info
                 if '0th' in exif_dict:
                     metadata["camera_make"] = exif_dict['0th'].get(271, b'').decode('utf-8', errors='ignore')
                     metadata["camera_model"] = exif_dict['0th'].get(272, b'').decode('utf-8', errors='ignore')
                 
-                # GPS data
-                if 'GPS' in exif_dict:
+                # Only extract GPS if the user checked the box!
+                if extract_gps and 'GPS' in exif_dict:
                     gps = exif_dict['GPS']
                     if 2 in gps and 4 in gps:
                         metadata["gps_latitude"] = self._convert_gps(gps[2])
                         metadata["gps_longitude"] = self._convert_gps(gps[4])
                 
-                # Date taken
                 if 'Exif' in exif_dict and 36867 in exif_dict['Exif']:
                     date_str = exif_dict['Exif'][36867].decode('utf-8')
-                    metadata["taken_date"] = datetime.strptime(
-                        date_str, '%Y:%m:%d %H:%M:%S'
-                    )
+                    metadata["taken_date"] = datetime.strptime(date_str, '%Y:%m:%d %H:%M:%S')
             
         except Exception as e:
             print(f"Error extracting metadata from {file_path}: {e}")
         
         return metadata
+
+# ... (Keep the rest of the file like _convert_gps the same)
     
     def _convert_gps(self, gps_tuple):
         """Convert GPS coordinates from EXIF format to decimal."""
