@@ -5,8 +5,11 @@ import { api } from '../services/api';
 import PhasePulseScanner from '../components/PhasePulseScanner';
 
 export default function Occasions() {
+  const savedTaskId = localStorage.getItem('occasionsTaskId');
+
   const [occasions, setOccasions] = useState<any[]>([]);
-  const [processing, setProcessing] = useState(false);
+  const [processing, setProcessing] = useState(!!savedTaskId);
+  const [taskId, setTaskId] = useState<string | null>(savedTaskId);
 
   const fetchOccasions = async () => {
     try {
@@ -21,15 +24,46 @@ export default function Occasions() {
     fetchOccasions();
   }, []);
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (taskId) {
+      interval = setInterval(async () => {
+        try {
+          const response = await api.get(`/progress/task/${taskId}`);
+          if (response.data.state === 'SUCCESS') {
+            clearInterval(interval);
+            setProcessing(false);
+            setTaskId(null);
+            localStorage.removeItem('occasionsTaskId');
+            fetchOccasions();
+          } else if (response.data.state === 'FAILURE') {
+            clearInterval(interval);
+            setProcessing(false);
+            setTaskId(null);
+            localStorage.removeItem('occasionsTaskId');
+            alert('Occasion classification failed.');
+          }
+        } catch (error: any) {
+          if (error.response?.status === 404 || error.response?.status === 500) {
+            clearInterval(interval);
+            setProcessing(false);
+            setTaskId(null);
+            localStorage.removeItem('occasionsTaskId');
+          }
+        }
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [taskId]);
+
   const handleProcessOccasions = async () => {
     setProcessing(true);
     try {
       const response = await api.post('/occasions/classify');
-      alert(`Successfully classified ${response.data.processed} photos!`);
-      fetchOccasions();
+      setTaskId(response.data.task_id);
+      localStorage.setItem('occasionsTaskId', response.data.task_id);
     } catch (error) {
-      alert("Error classifying occasions. Check console.");
-    } finally {
+      alert("Error starting occasion classification. Check console.");
       setProcessing(false);
     }
   };
@@ -47,14 +81,14 @@ export default function Occasions() {
           onClick={handleProcessOccasions}
           disabled={processing}
         >
-          {processing ? 'Classifying with CLIP...' : 'Classify Missing Occasions'}
+          {processing ? 'Classifying in Background...' : 'Classify Missing Occasions'}
         </Button>
       </div>
 
       <PhasePulseScanner 
         isScanning={processing} 
         title="CLIP Semantic Classifier"
-        subtitle="Evaluating photo context via zero-shot neural processing"
+        subtitle={taskId ? "Processing in background via Celery..." : "Evaluating photo context via zero-shot neural processing"}
         mainIcon={PartyPopper}
         phases={[
           { id: 1, title: 'Phase 1: Model Initialization', description: 'Loading CLIP ViT-B/32 neural network into system memory...', icon: BrainCircuit },
