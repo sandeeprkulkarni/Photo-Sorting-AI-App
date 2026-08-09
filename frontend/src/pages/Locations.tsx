@@ -96,7 +96,7 @@ export default function Locations() {
   
   const locationsFound = knownLocations.length;
   const photosWithGps = knownLocations.reduce((acc, loc) => acc + loc.count, 0);
-  const photosUnknown = unknownLocations.reduce((acc, loc) => acc + loc.count, 0) || 234; // Fallback for UI if none exist yet
+  const photosUnknown = unknownLocations.reduce((acc, loc) => acc + loc.count, 0); // Fallback for UI if none exist yet
 
   // Shared Card Styling
   const cardStyle = { 

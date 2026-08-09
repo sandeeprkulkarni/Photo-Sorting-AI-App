@@ -113,8 +113,8 @@ export default function Occasions() {
   };
 
   // --- Derived Statistics ---
-  const totalCategories = occasions.length || 7; 
-  const totalClassified = occasions.reduce((acc, occ) => acc + occ.count, 0) || 892; 
+  const totalCategories = occasions.length; 
+  const totalClassified = occasions.reduce((acc, occ) => acc + occ.count, 0); 
   
   let topOccasionName = 'Vacation';
   let topOccasionCount = 245;

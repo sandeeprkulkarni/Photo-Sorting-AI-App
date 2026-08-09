@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, AppBar, Toolbar, Typography } from '@mui/material';
-import { Home, Upload, Eye, Users, MapPin, Calendar, Settings, Copy } from 'lucide-react';
+import { Home, Upload, Eye, Users, MapPin, Calendar, Settings as SettingsIcon, Copy } from 'lucide-react';
 
 // Make sure this path matches where your Duplicates page is saved!
 import Duplicates from './pages/Duplicates';
@@ -12,6 +12,7 @@ import Review from './pages/Review';
 import People from './pages/People';
 import Locations from './pages/Locations';
 import Occasions from './pages/Occasions';
+import Settings from './pages/Settings';
 
 const theme = createTheme({
   palette: {
@@ -32,6 +33,7 @@ const menuItems = [
   { text: 'People', icon: <Users />, path: '/people' },
   { text: 'Locations', icon: <MapPin />, path: '/locations' },
   { text: 'Occasions', icon: <Calendar />, path: '/occasions' },
+  { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
 ];
 
 function App() {
@@ -80,6 +82,7 @@ function App() {
               <Route path="/people" element={<People />} />
               <Route path="/locations" element={<Locations />} />
               <Route path="/occasions" element={<Occasions />} />
+              <Route path="/settings" element={<Settings />} />
             </Routes>
           </Box>
         </Box>

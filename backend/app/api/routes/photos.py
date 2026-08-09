@@ -86,3 +86,38 @@ async def recategorize_photo(photo_id: int, request: RecategorizeRequest, db: Se
         photo.status = "organized"
         db.commit()
     return {"success": True}
+from sqlalchemy import func
+from app.database.models import Person
+
+@router.get("/stats/dashboard")
+async def get_dashboard_stats(db: Session = Depends(get_db)):
+    """Fast, optimized endpoint for fetching all dashboard metrics at once."""
+    
+    # Fast SQLite COUNT queries
+    total_photos = db.query(Photo).count()
+    processed = db.query(Photo).filter(Photo.status == "processed").count()
+    rejected = db.query(Photo).filter(Photo.status == "rejected").count()
+    duplicates = db.query(Photo).filter(Photo.is_duplicate == True).count()
+    
+    # WhatsApp category counts
+    useful = db.query(Photo).filter(Photo.whatsapp_category == "useful").count()
+    spam = db.query(Photo).filter(Photo.whatsapp_category == "spam").count()
+    greetings = db.query(Photo).filter(Photo.whatsapp_category == "greetings").count()
+    
+    # Entity counts
+    people = db.query(Person).count()
+    locations = db.query(func.count(func.distinct(Photo.location_name))).filter(Photo.location_name.isnot(None)).scalar() or 0
+    occasions = db.query(func.count(func.distinct(Photo.occasion))).filter(Photo.occasion.isnot(None)).scalar() or 0
+
+    return {
+        "totalPhotos": total_photos,
+        "processed": processed,
+        "duplicates": duplicates,
+        "rejected": rejected,
+        "people": people,
+        "locations": locations,
+        "occasions": occasions,
+        "useful": useful,
+        "spam": spam,
+        "greetings": greetings
+    }

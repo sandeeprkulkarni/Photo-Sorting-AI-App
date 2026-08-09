@@ -35,35 +35,9 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
-        const [
-          photosRes, 
-          processedRes, 
-          peopleRes, 
-          locationsRes, 
-          occasionsRes
-        ] = await Promise.all([
-          api.get('/photos/'),
-          api.get('/photos/?status=processed'),
-          api.get('/people/'),
-          api.get('/locations/'),
-          api.get('/occasions/')
-        ]);
-
-        const total = photosRes.data.total || 0;
-        const processedCount = processedRes.data.total || 0;
-        
-        setStats({
-          totalPhotos: total,
-          processed: processedCount,
-          duplicates: Math.floor(total * 0.12), 
-          rejected: Math.floor(total * 0.18),   
-          people: peopleRes.data.people?.length || 0,
-          locations: locationsRes.data.locations?.length || 0,
-          occasions: occasionsRes.data.occasions?.length || 0,
-          useful: Math.floor(total * 0.52),     
-          spam: Math.floor(total * 0.12),
-          greetings: Math.floor(total * 0.06),
-        });
+        // Just ONE lightning-fast API call!
+        const response = await api.get('/photos/stats/dashboard');
+        setStats(response.data);
       } catch (error) {
         console.error("Error fetching dashboard stats:", error);
       } finally {

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import photos, duplicates, people, locations, occasions, feedback, progress
+from app.api.routes import photos, duplicates, people, locations, occasions, feedback, progress, settings
 from app.database.session import engine, Base
 
 # Create database tables
@@ -28,6 +28,7 @@ app.include_router(duplicates.router, prefix="/api/duplicates", tags=["duplicate
 app.include_router(people.router, prefix="/api/people", tags=["people"])
 app.include_router(locations.router, prefix="/api/locations", tags=["locations"])
 app.include_router(occasions.router, prefix="/api/occasions", tags=["occasions"])
+app.include_router(settings.router, prefix="/api/settings", tags=["settings"])
 
 # Phase 6: Feedback & Learning
 app.include_router(feedback.router, prefix="/api/feedback", tags=["feedback"])

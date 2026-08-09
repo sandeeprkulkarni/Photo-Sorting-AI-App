@@ -70,13 +70,21 @@ def process_photo_batch(self, photo_ids: list):
     finally:
         db.close()
 
-@celery_app.task
-def detect_all_duplicates():
-    """Detect duplicates across all photos."""
+@celery_app.task(bind=True)
+def detect_all_duplicates(self):
+    """Detect duplicates across all photos and broadcast progress."""
     db = SessionLocal()
+    
     try:
+        # Tell the frontend that we have left the queue and are actively running!
+        self.update_state(
+            state='PROGRESS',
+            meta={'current': 1, 'total': 1, 'status': 'Running deep duplicate analysis...'}
+        )
+        
         detector = DuplicateDetector(db)
         groups = detector.detect_all_duplicates()
+        
         return {"duplicate_groups": len(groups)}
     finally:
         db.close()

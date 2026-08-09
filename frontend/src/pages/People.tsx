@@ -51,7 +51,7 @@ export default function People() {
   // --- Derived Statistics ---
   const trainedCount = people.filter(p => p.is_trained).length;
   const recognizedPhotos = people.reduce((acc, p) => acc + p.photo_count, 0);
-  const unknownFaces = 8; // Placeholder: Ideally fetched from a backend "Unknown" cluster route
+  const unknownFaces = 0; // Placeholder: Ideally fetched from a backend "Unknown" cluster route
   const totalFacesDetected = recognizedPhotos + unknownFaces;
 
   // Shared Card Styling
