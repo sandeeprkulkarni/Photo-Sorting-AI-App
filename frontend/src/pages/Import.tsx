@@ -76,13 +76,17 @@ export default function Import() {
         setImporting(true);
         setResults(null);
         
-        // Send the selected options to the backend
+        // 1. Grab the saved batch size from browser memory (default to 100 if none exists)
+        const savedBatchSize = parseInt(localStorage.getItem('batchSize') || '100', 10);
+
+        // 2. Send the selected options AND the batch size to the backend
         const response = await api.post('/photos/import', { 
           source_path: folderPath,
           include_subfolders: options.includeSubfolders,
           skip_duplicates: options.skipDuplicates,
           extract_gps: options.extractGps,
-          process_immediately: options.processImmediately
+          process_immediately: options.processImmediately,
+          batch_size: savedBatchSize // <--- The new line connecting your Settings to the Import!
         });
         
         setResults(response.data);

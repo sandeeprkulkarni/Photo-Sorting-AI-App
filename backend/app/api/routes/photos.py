@@ -14,6 +14,7 @@ class ImportRequest(BaseModel):
     skip_duplicates: bool = True
     extract_gps: bool = True
     process_immediately: bool = True
+    batch_size: int = 100  # <--- Added batch_size setting
 
 @router.post("/import")
 async def import_photos(request: ImportRequest, db: Session = Depends(get_db)):
@@ -34,8 +35,13 @@ async def import_photos(request: ImportRequest, db: Session = Depends(get_db)):
         photo_ids = [p.id for p in pending_photos]
         
         if photo_ids:
-            task = process_photo_batch.delay(photo_ids)
-            results["task_id"] = task.id
+            # Use the actual batch size from settings!
+            for i in range(0, len(photo_ids), request.batch_size):
+                chunk = photo_ids[i:i + request.batch_size]
+                process_photo_batch.delay(chunk)
+            
+            # Send the special ID to trigger database tracking!
+            results["task_id"] = "import_tracking"
             
     return results
 

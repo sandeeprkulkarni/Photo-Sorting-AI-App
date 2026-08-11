@@ -1,35 +1,43 @@
-from fastapi import APIRouter
-from app.workers.queue import celery_app
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from app.database.session import get_db
+from app.database.models import Photo
+from celery.result import AsyncResult
 
 router = APIRouter()
 
 @router.get("/task/{task_id}")
-async def get_task_status(task_id: str):
-    """Get the status of a background task."""
-    task = celery_app.AsyncResult(task_id)
+async def get_task_progress(task_id: str, db: Session = Depends(get_db)):
+    """Track Celery tasks or overall DB import progress."""
     
-    if task.state == 'PENDING':
-        response = {
-            'state': task.state,
-            'current': 0,
-            'total': 1,
-            'status': 'Pending...'
+    # 1. Custom Database Tracking for Multi-Worker Imports
+    if task_id == "import_tracking":
+        total = db.query(Photo).count()
+        processed = db.query(Photo).filter(Photo.status != "pending").count()
+        
+        state = "PROGRESS"
+        if processed >= total and total > 0:
+            state = "SUCCESS"
+            
+        return {
+            "state": state,
+            "current": processed,
+            "total": total,
+            "status": f"AI Processing: {processed} / {total} photos..."
         }
-    elif task.state != 'FAILURE':
-        response = {
-            'state': task.state,
-            'current': task.info.get('current', 0),
-            'total': task.info.get('total', 1),
-            'status': task.info.get('status', '')
-        }
-        if 'result' in task.info:
-            response['result'] = task.info['result']
-    else:
-        response = {
-            'state': task.state,
-            'current': 1,
-            'total': 1,
-            'status': str(task.info),
-        }
+
+    # 2. Standard Celery Task Tracking (for Duplicates, etc.)
+    task = AsyncResult(task_id)
+    response = {
+        "state": task.state,
+        "current": 0,
+        "total": 1,
+        "status": "Waiting in queue..."
+    }
     
+    if task.info and isinstance(task.info, dict):
+        response["current"] = task.info.get("current", 0)
+        response["total"] = task.info.get("total", 1)
+        response["status"] = task.info.get("status", "Processing...")
+        
     return response

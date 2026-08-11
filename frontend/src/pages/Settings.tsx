@@ -28,8 +28,12 @@ export default function Settings() {
     parallelProcessing: true,
   });
 
-  // State for sliders
-  const [batchSize, setBatchSize] = useState(100);
+  // State for sliders - Initialized from Local Storage
+  const [batchSize, setBatchSize] = useState(() => {
+    const saved = localStorage.getItem('batchSize');
+    return saved ? parseInt(saved, 10) : 100;
+  });
+  
   const [qualityThreshold, setQualityThreshold] = useState(70);
 
   // State for Backend Data
@@ -51,6 +55,11 @@ export default function Settings() {
   useEffect(() => {
     fetchStorageStats();
   }, []);
+
+  // Automatically save batchSize to local storage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('batchSize', batchSize.toString());
+  }, [batchSize]);
 
   const handleToggle = (key: keyof typeof settings) => {
     setSettings(prev => ({ ...prev, [key]: !prev[key] }));
@@ -95,10 +104,11 @@ export default function Settings() {
     setIsProcessing(true);
     try {
       await api.post('/settings/reset-data');
-      await fetchStorageStats();
-      alert("System has been securely reset.");
+      localStorage.clear();
+      alert("System has been securely reset. The application will now reload.");
+      window.location.reload();
     } catch (e) {
-      alert("Failed to reset system.");
+      alert("Failed to reset system. Ensure the backend is running.");
     } finally {
       setIsProcessing(false);
     }
@@ -292,34 +302,6 @@ export default function Settings() {
               {isProcessing ? <CircularProgress size={24} color="inherit" /> : 'Reset All Data'}
             </Button>
           </Stack>
-        </CardContent>
-      </Card>
-
-      {/* About */}
-      <Card sx={cardStyle} variant="outlined">
-        <CardContent sx={{ p: 4 }}>
-          <Typography variant="h6" fontWeight="bold" mb={3}>About</Typography>
-          
-          <Stack spacing={2} mb={3}>
-            <Box display="flex" justifyContent="space-between">
-              <Typography variant="body2" color="text.secondary">Version:</Typography>
-              <Typography variant="body2" fontWeight="600">1.0.0 (Beta)</Typography>
-            </Box>
-            <Box display="flex" justifyContent="space-between">
-              <Typography variant="body2" color="text.secondary">AI Models:</Typography>
-              <Typography variant="body2" fontWeight="600">CLIP, InsightFace, PaddleOCR</Typography>
-            </Box>
-            <Box display="flex" justifyContent="space-between">
-              <Typography variant="body2" color="text.secondary">License:</Typography>
-              <Typography variant="body2" fontWeight="600">MIT</Typography>
-            </Box>
-          </Stack>
-
-          <Divider sx={{ my: 2 }} />
-          
-          <Button fullWidth sx={{ justifyContent: 'flex-start', color: '#0f172a', fontWeight: 600, textTransform: 'none', p: 0, '&:hover': { backgroundColor: 'transparent', textDecoration: 'underline' } }}>
-            Check for Updates
-          </Button>
         </CardContent>
       </Card>
 
