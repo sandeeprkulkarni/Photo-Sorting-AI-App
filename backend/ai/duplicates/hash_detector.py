@@ -3,8 +3,11 @@ from PIL import Image
 import imagehash
 from typing import List, Dict
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.database.models import Photo, DuplicateGroup
 import uuid
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 
 class DuplicateDetector:
     def __init__(self, db: Session):
@@ -30,8 +33,6 @@ class DuplicateDetector:
     
     def detect_exact_duplicates(self) -> List[str]:
         """Find photos with identical file hashes."""
-        from sqlalchemy import func
-        
         # Find file hashes that appear more than once
         duplicate_hashes = self.db.query(
             Photo.file_hash,
@@ -54,7 +55,7 @@ class DuplicateDetector:
             group_id = str(uuid.uuid4())
             
             # Determine best photo (highest resolution)
-            best_photo = max(photos, key=lambda p: p.width * p.height)
+            best_photo = max(photos, key=lambda p: (p.width or 0) * (p.height or 0))
             
             # Create group record
             group = DuplicateGroup(
@@ -77,10 +78,10 @@ class DuplicateDetector:
         self.db.commit()
         return group_ids
     
-    def detect_perceptual_duplicates(self, threshold: int = 5) -> List[str]:
+    def detect_perceptual_duplicates(self, threshold: int = 4) -> List[str]:
         """
-        Find photos with similar perceptual hashes.
-        threshold: Hamming distance threshold (0-64)
+        Find photos with similar perceptual hashes, utilizing AI cross-checking.
+        threshold: Tightened Hamming distance threshold to 4.
         """
         # Get all photos without duplicate group
         photos = self.db.query(Photo).filter(
@@ -118,14 +119,26 @@ class DuplicateDetector:
                 distance = hash1 - hash2
                 
                 if distance <= threshold:
+                    # --- AI SEMANTIC CROSS-CHECK ---
+                    # Cross-check the visual 8x8 blob match with actual semantic meaning
+                    if photo1.clip_embedding and photo2.clip_embedding:
+                        emb1 = np.array([photo1.clip_embedding])
+                        emb2 = np.array([photo2.clip_embedding])
+                        semantic_sim = cosine_similarity(emb1, emb2)[0][0]
+                        
+                        # If they visually match but their AI meaning is totally different (e.g., shoe vs pancake), reject it.
+                        if semantic_sim < 0.85:
+                            continue
+                    elif distance > 2:
+                        # If no CLIP data exists to verify, demand an incredibly strict visual match to prevent false positives
+                        continue
+                        
                     similar_photos.append(photo2)
                     processed.add(photo2.id)
             
-            # If we found duplicates, create a group
+            # If we found true duplicates, create a group
             if len(similar_photos) > 1:
                 group_id = str(uuid.uuid4())
-                
-                # Determine best photo based on quality
                 best_photo = self._select_best_photo(similar_photos)
                 
                 group = DuplicateGroup(
@@ -148,13 +161,11 @@ class DuplicateDetector:
         self.db.commit()
         return group_ids
     
-    def detect_semantic_duplicates(self, similarity_threshold: float = 0.95) -> List[str]:
+    def detect_semantic_duplicates(self, similarity_threshold: float = 0.96) -> List[str]:
         """
         Find semantically similar photos using CLIP embeddings.
+        Threshold tightened to 0.96 to prevent grouping entirely different photos taken in the exact same room.
         """
-        from sklearn.metrics.pairwise import cosine_similarity
-        import numpy as np
-        
         # Get photos with embeddings but no duplicate group
         photos = self.db.query(Photo).filter(
             Photo.duplicate_group_id.is_(None),

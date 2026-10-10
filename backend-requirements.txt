@@ -29,7 +29,7 @@ open_clip_torch==2.29.0
 
 # AI/ML - Face Recognition
 insightface==0.7.3
-onnxruntime-gpu==1.20.1  # Use onnxruntime if no GPU
+onnxruntime-gpu==1.20.2  # Use onnxruntime if no GPU
 
 # AI/ML - OCR
 #paddleocr==2.9.1

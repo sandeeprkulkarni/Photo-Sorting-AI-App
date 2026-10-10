@@ -54,18 +54,20 @@ class Photo(Base):
     faces = relationship("Face", back_populates="photo")
     user_corrections = relationship("UserCorrection", back_populates="photo")
 
-
 class Person(Base):
     __tablename__ = "people"
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
-    face_embeddings = Column(JSON)  # List of embeddings from training photos
+    face_embeddings = Column(JSON)
+    
+    # NEW: Store the exact file paths used to train this person
+    training_photo_paths = Column(JSON) 
+    
     photo_count = Column(Integer, default=0)
     created_date = Column(DateTime, default=datetime.utcnow)
     
     faces = relationship("Face", back_populates="person")
-
 
 class Face(Base):
     __tablename__ = "faces"
@@ -94,19 +96,18 @@ class Face(Base):
 class DuplicateGroup(Base):
     __tablename__ = "duplicate_groups"
     
-    id = Column(String, primary_key=True)  # UUID
+    id = Column(String, primary_key=True)
     photo_count = Column(Integer)
     best_photo_id = Column(Integer, ForeignKey("photos.id"))
     similarity_score = Column(Float)
-    detection_method = Column(String)  # hash, perceptual, semantic
-
+    detection_method = Column(String)
 
 class UserCorrection(Base):
     __tablename__ = "user_corrections"
     
     id = Column(Integer, primary_key=True, index=True)
     photo_id = Column(Integer, ForeignKey("photos.id"))
-    correction_type = Column(String)  # occasion, location, person, category
+    correction_type = Column(String)
     original_value = Column(String)
     corrected_value = Column(String)
     correction_date = Column(DateTime, default=datetime.utcnow)

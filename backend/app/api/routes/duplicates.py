@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends
+import os
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app.database.session import get_db
@@ -14,9 +16,16 @@ async def get_duplicate_groups(db: Session = Depends(get_db)):
     
     result = []
     for group in groups:
-        # Fetch all photos belonging to this specific duplicate group
-        photos = db.query(Photo).filter(Photo.duplicate_group_id == group.id).all()
+        # Fetch all photos belonging to this specific duplicate group (excluding rejected ones)
+        photos = db.query(Photo).filter(
+            Photo.duplicate_group_id == group.id,
+            Photo.status != "rejected"
+        ).all()
         
+        # FIX 1: Skip empty or orphan groups!
+        if len(photos) < 2:
+            continue
+            
         group_data = {
             "id": group.id,
             "similarity_score": group.similarity_score,
@@ -58,8 +67,33 @@ async def set_best_photo(group_id: str, request: SetBestRequest, db: Session = D
         # Loop through the photos and update their boolean flags
         photos = db.query(Photo).filter(Photo.duplicate_group_id == group_id).all()
         for photo in photos:
-            photo.is_best_in_group = (photo.id == request.photo_id)
+            if photo.id == request.photo_id:
+                photo.is_best_in_group = True
+                photo.status = "organized"
+            else:
+                photo.is_best_in_group = False
+                photo.status = "rejected"
             
         db.commit()
         
     return {"success": True}
+
+# --- NEW: Endpoint to reject an entire group ---
+@router.post("/{group_id}/reject-all")
+async def reject_all_photos(group_id: str, db: Session = Depends(get_db)):
+    """Mark all photos in a duplicate group as rejected."""
+    photos = db.query(Photo).filter(Photo.duplicate_group_id == group_id).all()
+    for photo in photos:
+        photo.status = "rejected"
+        photo.is_best_in_group = False
+        
+    db.commit()
+    return {"success": True}
+
+# FIX 2: Securely stream the image file to the frontend
+@router.get("/photo/{photo_id}/image")
+async def get_photo_image(photo_id: int, db: Session = Depends(get_db)):
+    photo = db.query(Photo).filter(Photo.id == photo_id).first()
+    if not photo or not os.path.exists(photo.file_path):
+        raise HTTPException(status_code=404, detail="Photo not found")
+    return FileResponse(photo.file_path)

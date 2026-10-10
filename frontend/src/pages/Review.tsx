@@ -27,7 +27,7 @@ export default function Review() {
 
   const loadClassifiedPhotos = async () => {
     try {
-      const response = await api.get('/photos?status=classified');
+      const response = await api.get('/photos?status=processed');
       setPhotos(response.data.photos);
     } catch (error) {
       console.error("Failed to load photos", error);

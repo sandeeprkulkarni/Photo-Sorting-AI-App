@@ -11,13 +11,17 @@ import {
   Calendar,
   Upload,
   Eye,
-  ScanFace
+  ScanFace,
+  Cpu // <-- Added the Cpu icon for the new button
 } from 'lucide-react';
 import { api } from '../services/api';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  
+  // NEW: State to track when the AI processing is starting
+  const [starting, setStarting] = useState(false);
   
   const [stats, setStats] = useState({
     totalPhotos: 0,
@@ -35,7 +39,6 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
-        // Just ONE lightning-fast API call!
         const response = await api.get('/photos/stats/dashboard');
         setStats(response.data);
       } catch (error) {
@@ -48,7 +51,26 @@ export default function Dashboard() {
     fetchDashboardStats();
   }, []);
 
-  // Reusable custom progress bar component
+  // NEW: Function to trigger the background AI workers
+  const handleProcessPending = async () => {
+    setStarting(true);
+    try {
+      const response = await api.post('/photos/process-pending');
+      if (response.data.task_id) {
+        // Save the task ID so your progress scanner can track it!
+        localStorage.setItem('importTaskId', response.data.task_id);
+        alert(`Successfully started AI processing for ${response.data.count} photos! You can watch the progress on the Import tab.`);
+      } else {
+        alert('All photos are already processed!');
+      }
+    } catch (error) {
+      console.error('Failed to start processing:', error);
+      alert('Error starting background processing.');
+    } finally {
+      setStarting(false);
+    }
+  };
+
   const CustomProgressBar = ({ label, count, total, color }: { label: string, count: number, total: number, color: string }) => {
     const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
     return (
@@ -83,7 +105,6 @@ export default function Dashboard() {
     ? Math.round((stats.processed / stats.totalPhotos) * 100) 
     : 0;
 
-  // Shared card styling to match the Figma design perfectly
   const cardStyles = { 
     borderRadius: '16px', 
     boxShadow: '0 1px 3px rgba(0,0,0,0.05)', 
@@ -219,6 +240,19 @@ export default function Dashboard() {
             <CardContent sx={{ p: 4 }}>
               <Typography variant="h6" fontWeight="bold" mb={3}>Quick Actions</Typography>
               <Stack spacing={2}>
+                
+                {/* NEW: The Night Mode button added directly into your existing Stack layout */}
+                <Button 
+                  variant="contained" 
+                  size="large"
+                  onClick={handleProcessPending}
+                  disabled={starting}
+                  sx={{ justifyContent: 'flex-start', py: 1.5, borderRadius: 2, textTransform: 'none', fontWeight: 600, backgroundColor: '#0f172a', '&:hover': { backgroundColor: '#1e293b' } }}
+                  startIcon={starting ? <CircularProgress size={18} color="inherit" /> : <Cpu size={18} />}
+                >
+                  {starting ? 'Starting AI Workers...' : 'Run Pending Tasks (Night Mode)'}
+                </Button>
+
                 <Button 
                   variant="outlined" 
                   size="large"

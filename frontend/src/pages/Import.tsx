@@ -6,7 +6,6 @@ import {
   Typography, 
   Box, 
   Checkbox, 
-  FormControlLabel, 
   Chip,
   CircularProgress
 } from '@mui/material';
@@ -22,7 +21,6 @@ export default function Import() {
   const [taskId, setTaskId] = useState<string | null>(savedTaskId);
   const [results, setResults] = useState<any>(null);
 
-  // Checkbox states
   const [options, setOptions] = useState({
     includeSubfolders: true,
     skipDuplicates: true,
@@ -57,14 +55,14 @@ export default function Import() {
             alert('Background AI processing failed.');
           }
         } catch (error: any) {
-          if (error.response?.status === 404 || error.response?.status === 500) {
-            clearInterval(interval);
-            setProcessing(false);
-            setTaskId(null);
-            localStorage.removeItem('importTaskId');
-          }
+          // FIX: If the task is missing (404) or the server errors out, kill the scanner instantly.
+          clearInterval(interval);
+          setProcessing(false);
+          setTaskId(null);
+          localStorage.removeItem('importTaskId');
+          console.warn("Background task no longer exists. Clearing scanner.");
         }
-      }, 1000);
+      }, 2500); 
     }
     return () => clearInterval(interval);
   }, [taskId]);
@@ -76,17 +74,15 @@ export default function Import() {
         setImporting(true);
         setResults(null);
         
-        // 1. Grab the saved batch size from browser memory (default to 100 if none exists)
         const savedBatchSize = parseInt(localStorage.getItem('batchSize') || '100', 10);
 
-        // 2. Send the selected options AND the batch size to the backend
         const response = await api.post('/photos/import', { 
           source_path: folderPath,
           include_subfolders: options.includeSubfolders,
           skip_duplicates: options.skipDuplicates,
           extract_gps: options.extractGps,
           process_immediately: options.processImmediately,
-          batch_size: savedBatchSize // <--- The new line connecting your Settings to the Import!
+          batch_size: savedBatchSize
         });
         
         setResults(response.data);
@@ -114,7 +110,6 @@ export default function Import() {
         <Typography variant="body1" color="text.secondary">Import photos from your computer for organization</Typography>
       </Box>
 
-      {/* Upload Card */}
       <Card sx={cardStyle} variant="outlined">
         <CardContent sx={{ p: 4 }}>
           <Typography variant="subtitle1" fontWeight="bold" mb={3}>Select Photos to Import</Typography>
@@ -148,7 +143,6 @@ export default function Import() {
         </CardContent>
       </Card>
 
-      {/* Options Card */}
       <Card sx={cardStyle} variant="outlined">
         <CardContent sx={{ p: 4 }}>
           <Typography variant="subtitle1" fontWeight="bold" mb={3}>Import Options</Typography>
@@ -189,7 +183,6 @@ export default function Import() {
         </CardContent>
       </Card>
 
-      {/* Formats Card */}
       <Card sx={cardStyle} variant="outlined">
         <CardContent sx={{ p: 4 }}>
           <Typography variant="subtitle1" fontWeight="bold" mb={3}>Supported Formats</Typography>
@@ -208,7 +201,6 @@ export default function Import() {
         </CardContent>
       </Card>
 
-      {/* Results / Scanner Area */}
       {results && !processing && (
         <Box sx={{ mt: 4, p: 3, backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px' }}>
           <Box display="flex" alignItems="center" gap={1} mb={1}>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Card, CardContent, Typography, Box, Grid, Chip, Stack, CircularProgress } from '@mui/material';
 import { Copy, Search, ShieldAlert, CheckCircle, Info, Check } from 'lucide-react';
-import { api } from '../services/api';
+// FIX 1: Import API_BASE_URL so we always use the correct port!
+import { api, API_BASE_URL } from '../services/api';
 import PhasePulseScanner from '../components/PhasePulseScanner';
 
 interface Photo {
@@ -235,6 +236,18 @@ function DuplicateGroupCard({ group, index, onResolved }: { group: DuplicateGrou
     }
   };
 
+  // --- NEW: Handle rejecting the entire group ---
+  const handleRejectAll = async () => {
+    setIsSubmitting(true);
+    try {
+      await api.post(`/duplicates/${group.id}/reject-all`);
+      onResolved(); // Hide the group from UI
+    } catch (error) {
+      console.error("Failed to reject entire group", error);
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <Card sx={{ borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
       <CardContent sx={{ p: 4, pb: "32px !important" }}>
@@ -286,7 +299,7 @@ function DuplicateGroupCard({ group, index, onResolved }: { group: DuplicateGrou
                   )}
 
                   <Box sx={{ width: '100%', height: '200px', backgroundColor: '#f3f4f6' }}>
-                    <img src={`file://${photo.file_path}`} alt={filename} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={`${API_BASE_URL}/duplicates/photo/${photo.id}/image`} alt={filename} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </Box>
 
                   <Box sx={{ p: 2, flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
@@ -317,6 +330,17 @@ function DuplicateGroupCard({ group, index, onResolved }: { group: DuplicateGrou
             Select the photo you want to keep. Others will be moved to trash.
           </Typography>
           <Box display="flex" gap={2}>
+            {/* NEW: Delete Entire Group button */}
+            <Button 
+              variant="outlined" 
+              color="error"
+              onClick={handleRejectAll}
+              disabled={isSubmitting}
+              sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600 }}
+            >
+              Delete Entire Group
+            </Button>
+
             <Button 
               variant="outlined" 
               onClick={onResolved}

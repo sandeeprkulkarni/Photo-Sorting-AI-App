@@ -9,77 +9,58 @@ class CLIPClassifier:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model, self.preprocess = clip.load(model_name, device=self.device)
         
-        # Define classification prompts
+        # FIX: Updated prompts to explicitly distinguish digital graphics from real photography
         self.whatsapp_categories = {
             "spam": [
-                "promotional advertisement",
-                "marketing offer",
-                "cryptocurrency investment",
-                "fake job offer",
-                "scam message",
-                "phishing attempt",
-                "click bait",
+                "promotional advertisement graphic",
+                "marketing offer text",
+                "scam message screenshot",
             ],
             "greetings": [
-                "good morning message",
-                "good night message",
-                "happy birthday greeting",
-                "anniversary wishes",
-                "festival celebration image",
-                "motivational quote",
-                "religious blessing",
+                "digital greeting card with text",
+                "good morning forward image",
+                "happy birthday graphic card",
+                "festival celebration graphic poster",
             ],
             "sensitive": [
                 "adult content",
                 "violent imagery",
-                "disturbing content",
             ],
             "useful": [
-                "personal photo",
-                "family photo",
-                "travel photo",
-                "document scan",
-                "screenshot",
-                "food photo",
-                "nature photo",
+                "personal photo of people",
+                "family gathering celebration",
+                "real photograph of friends",
+                "people at a festival",
+                "party photography",
             ]
         }
     
-    def classify_image(self, image_path: str) -> Dict[str, float]:
-        """
-        Classify image into WhatsApp categories.
-        Returns: {"category": "spam", "confidence": 0.85, "scores": {...}}
-        """
-        # Load and preprocess image
+    def classify_image(self, image_path: str) -> dict:
+        """Classify an image into one of the WhatsApp categories."""
         image = Image.open(image_path).convert('RGB')
         image_input = self.preprocess(image).unsqueeze(0).to(self.device)
         
-        # Prepare all prompts
-        all_prompts = []
+        # Prepare text prompts
         prompt_to_category = {}
-        
+        all_prompts = []
         for category, prompts in self.whatsapp_categories.items():
             for prompt in prompts:
-                all_prompts.append(f"a photo of {prompt}")
+                all_prompts.append(prompt)
+                # FIX: Map the numerical index to the category so NumPy can read it
                 prompt_to_category[len(all_prompts) - 1] = category
-        
-        # Encode prompts
+                
         text_inputs = clip.tokenize(all_prompts).to(self.device)
         
-        # Calculate similarities
         with torch.no_grad():
             image_features = self.model.encode_image(image_input)
             text_features = self.model.encode_text(text_inputs)
             
-            # Normalize features
             image_features /= image_features.norm(dim=-1, keepdim=True)
             text_features /= text_features.norm(dim=-1, keepdim=True)
             
-            # Calculate cosine similarity
             similarity = (100.0 * image_features @ text_features.T).softmax(dim=-1)
             scores = similarity[0].cpu().numpy()
         
-        # Aggregate scores by category
         category_scores = {}
         for category in self.whatsapp_categories.keys():
             category_indices = [
@@ -87,7 +68,6 @@ class CLIPClassifier:
             ]
             category_scores[category] = float(np.max(scores[category_indices]))
         
-        # Determine best category
         best_category = max(category_scores, key=category_scores.get)
         confidence = category_scores[best_category]
         
@@ -98,12 +78,11 @@ class CLIPClassifier:
         }
     
     def generate_embedding(self, image_path: str) -> np.ndarray:
-        """Generate CLIP embedding for semantic similarity."""
         image = Image.open(image_path).convert('RGB')
         image_input = self.preprocess(image).unsqueeze(0).to(self.device)
         
         with torch.no_grad():
             embedding = self.model.encode_image(image_input)
             embedding /= embedding.norm(dim=-1, keepdim=True)
-        
+            
         return embedding.cpu().numpy()[0]

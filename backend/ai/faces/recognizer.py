@@ -59,7 +59,7 @@ class FaceRecognizer:
     
     def train_person(self, person_id: int, training_photos: List[str]) -> bool:
         """
-        Train a person profile with example photos.
+        Train a person profile with example photos. (Appends to existing data)
         """
         from ai.faces.detector import FaceDetector
         
@@ -82,11 +82,14 @@ class FaceRecognizer:
             best_face = max(faces, key=lambda f: f["quality"])
             all_embeddings.append(best_face["embedding"])
         
-        if len(all_embeddings) < 3:
-            raise ValueError("Need at least 3 clear face photos for training")
+        # FIX 1: Lowered the threshold to 1 so you can add single photos later
+        if len(all_embeddings) < 1:
+            raise ValueError("Need at least 1 clear face photo for training")
         
-        # Store embeddings
-        person.face_embeddings = all_embeddings
+        # FIX 2: Append the new embeddings to the existing ones instead of overwriting!
+        existing_embeddings = person.face_embeddings or []
+        person.face_embeddings = existing_embeddings + all_embeddings
+        
         self.db.commit()
         
         return True

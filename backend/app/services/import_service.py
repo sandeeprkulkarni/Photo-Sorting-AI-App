@@ -44,8 +44,18 @@ class ImportService:
                 if skip_duplicates:
                     existing = self.db.query(Photo).filter(Photo.file_hash == file_hash).first()
                     if existing:
-                        results["skipped"] += 1
+                        # --- NEW RE-SCAN LOGIC ---
+                        # Update the file path in case it was physically moved during the export task
+                        existing.file_path = file_path
+                        
+                        # If the photo was previously marked as spam/rejected, give it a second chance!
+                        if existing.status in ["auto_rejected", "rejected"]:
+                            existing.status = "pending"
+                            results["imported"] += 1
+                        else:
+                            results["skipped"] += 1
                         continue
+                        # -------------------------
                 
                 # Pass user preference for GPS extraction
                 metadata = self._extract_metadata(file_path, extract_gps)
@@ -111,8 +121,6 @@ class ImportService:
             print(f"Error extracting metadata from {file_path}: {e}")
         
         return metadata
-
-# ... (Keep the rest of the file like _convert_gps the same)
     
     def _convert_gps(self, gps_tuple):
         """Convert GPS coordinates from EXIF format to decimal."""

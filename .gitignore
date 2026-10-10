@@ -44,3 +44,8 @@ logs/
 # Build artifacts
 build/
 *.egg
+
+# Redis Database Snapshots
+*.rdb
+temp-*.rdb
+dump.rdb
